@@ -1,0 +1,32 @@
+{
+  "allow_missing_loci": true,
+  "allow_presence": false,
+  "curators": [
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/users/5"
+  ],
+  "description": "MLST",
+  "display_order": 1,
+  "fields": [
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/schemes/1/fields/ST",
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/schemes/1/fields/clonal_complex"
+  ],
+  "has_primary_key_field": true,
+  "id": 1,
+  "last_added": "2026-03-26",
+  "last_updated": "2026-03-26",
+  "loci": [
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/loci/gki",
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/loci/gtr",
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/loci/murI",
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/loci/mutS",
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/loci/recP",
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/loci/xpt",
+    "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/loci/yqiL"
+  ],
+  "locus_count": 7,
+  "message": "Please note that you are currently restricted to accessing data that was submitted on or prior to 2024-12-31. Please authenticate to access the full dataset.",
+  "primary_key_field": "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/schemes/1/fields/ST",
+  "profiles": "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/schemes/1/profiles",
+  "profiles_csv": "https://rest.pubmlst.org/db/pubmlst_spyogenes_seqdef/schemes/1/profiles_csv",
+  "records": 1741
+}
