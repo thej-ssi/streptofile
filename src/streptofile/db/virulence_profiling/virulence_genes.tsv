@@ -1,0 +1,67 @@
+Gene	Reference	Type
+speA	WP_009880239	Superatigen exotoxin
+speC	WP_021733756	Superatigen exotoxin
+speG	WP_038431202	Superatigen exotoxin
+speH	WP_010922229	Superatigen exotoxin
+speI	WP_047373492	Superatigen exotoxin
+speJ	WP_010921949	Superatigen exotoxin
+speK	WP_002983113	Superatigen exotoxin
+speL	WP_020833516	Superatigen exotoxin
+speM	WP_038431384	Superatigen exotoxin
+speQ	WP_085634345	Superatigen exotoxin
+speR	WP_269458603	Superatigen exotoxin
+smeZ	WP_023610175	Superatigen exotoxin
+ssa	WP_002988472	Superatigen exotoxin
+speB	WP_014407896	Exotoxin
+slo	WP_080281942	Exotoxin
+sagA	WP_002985285	Exotoxin
+nga	WP_021340669	Exotoxin
+Ifs	WP_002987884	Exotoxin
+cfa	WP_009880829	Exotoxin
+hasA	WP_038431685	Capsule
+hasB	WP_111679870	Capsule
+hasC	WP_002982024	Capsule
+hyl	WP_011054788	Capsule
+HasS		Capsule
+cpa	WP_168639774	Adhesin
+Spy0128	WP_346393375	Adhesin
+sfb1	WP_041174256	Adhesin
+sfb2	WP_136299195	Adhesin
+fbpA	WP_014635747	Adhesin
+scl1	WP_111679864	Adhesin
+scl2	WP_369324857	Adhesin
+Lmb	WP_002987954	Adhesin
+R28	WP_011285020	Adhesin
+eno	WP_023078153	Adhesin
+sic	AAF34323.2	Immune modulator
+ska	WP_038431609	Immune modulator
+emm	WP_111679868	Immune modulator
+mrp	WP_014407887	Immune modulator
+enn	WP_111679867	Immune modulator
+ess	WP_002990270	Immune modulator
+spyCEP	WP_174145361	Immune modulator
+scpA	WP_011285740	Immune modulator
+ideS	WP_010922160	Immune modulator
+ndoS	WP_011285695	Immune modulator
+sda1	WP_011018105	Deoxyribonuclease
+sda2	WP_136304021	Deoxyribonuclease
+sda3	WP_011285611	Deoxyribonuclease
+spd1	WP_002985324	Deoxyribonuclease
+spd4	WP_002983479	Deoxyribonuclease
+sdn	WP_050440680	Deoxyribonuclease
+spnA	WP_002985259	Deoxyribonuclease
+sdaB	WP_010922721	Deoxyribonuclease
+covR	WP_002991052	Transcription regulator
+covS	WP_002991036	Transcription regulator
+rocA	WP_011285039	Transcription regulator
+fabT	WP_002993768	Transcription regulator
+mtsR	WP_011285412	Transcription regulator
+trxR	WP_010922520	Transcription regulator
+nga-ifsslo		Transcription regulator
+rnc	WP_002990670	RNA modification
+rny	WP_002988954	RNA modification
+rnr	WP_080281949	RNA modification
+yhaM	WP_002986055	RNA modification
+pnpA	WP_000845143	RNA modification
+hdsM	WP_010922657	RNA modification
+Shr	WP_111679827	RNA modification

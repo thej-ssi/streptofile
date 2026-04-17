@@ -102,12 +102,11 @@ wheels = [
 
 [[package]]
 name = "streptofile"
-version = "0.1.0"
+version = "0.3.3"
 source = { editable = "." }
 dependencies = [
     { name = "polars" },
     { name = "python-dotenv" },
-    { name = "wgs-data-manager" },
 ]
 
 [package.dev-dependencies]
@@ -119,20 +118,7 @@ dev = [
 requires-dist = [
     { name = "polars" },
     { name = "python-dotenv" },
-    { name = "wgs-data-manager" },
 ]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
-
-[[package]]
-name = "wgs-data-manager"
-version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "polars" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/c5/d9/9edb2f7cb162d78760110e254b235042329ceea1a34e2ac4ef8d4fce99eb/wgs_data_manager-0.1.0.tar.gz", hash = "sha256:a17d0d1e7ef149f8b54e10b2a650e6db41bd171f86efc6bdc061cfc6ffb0fba7", size = 4893, upload-time = "2026-03-24T07:54:28.557Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d8/e0/dcb4c3909006604250990347bf31c79d190335b9deed6e8226ed2bd2376c/wgs_data_manager-0.1.0-py3-none-any.whl", hash = "sha256:319e87a8a42dc9c654b0d1b2a05400ea58db12970f2b1acea25ee6fb0d2fcbd6", size = 9081, upload-time = "2026-03-24T07:54:27.531Z" },
-]

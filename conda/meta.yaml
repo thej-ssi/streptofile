@@ -1,0 +1,45 @@
+{% set name = "streptofile" %}
+{% set version = "0.3.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/streptofile-{{ version }}.tar.gz
+  sha256: 7d879bfac49cdd2d5535cecf1fbd713e04f734eeaed407511301cfcc687747c7
+
+build:
+  entry_points:
+    - streptofile = streptofile.streptofile:main
+  noarch: python
+  script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+  number: 0
+
+requirements:
+  host:
+    - python >=3.14
+    - uv-build
+    - pip
+  run:
+    - python >=3.14
+    - polars
+    - python-dotenv
+    - blast
+
+test:
+  imports:
+    - streptofile
+  commands:
+    - pip check
+    - streptofile --help
+  requires:
+    - pip
+
+about:
+  summary: 'Analysis of Streptococcus pyogenes whole-genome sequencing data'
+  license: MIT
+
+extra:
+  recipe-maintainers:
+    - thej-ssi
