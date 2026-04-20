@@ -1,7 +1,0 @@
-sample	EMM_type	ENN_type	MRP_type	genes_in_operon	emm_typing_notes
-GCF_000011765.3_ASM1176v2_genomic.fna	1.0	-	-	EMM1.0	All exact allele matches
-GCF_000167435.2_ASM16743v2_genomic.fna	49.1	236.2*	141.3	EMM141.3,EMM49.1,EMM236.2	ENN236.2 with pident 98.33 and length 180/180
-GCF_000767505.1_ASM76750v1_genomic.fna	83.1	240.0*	156.4	EMM156.4,EMM83.1,EMM240.0	ENN240.0 with pident 97.74 and length 177/180
-GCF_001535505.1_ASM153550v1_genomic.fna	4.0	-	156.0	EMM156.0,EMM4.0	EMM redesignated due to known MRP+EMM operon
-GCF_002236855.1_ASM223685v1_genomic.fna	-	-	-	EMM156.1,EMM111.2,EMM111.2,EMM29.32	More than three EMM genes found, EMM156.1 with pident 98.333 and length 180/180, EMM111.2 with pident 99.444 and length 180/180, EMM111.2 with pident 99.394 and length 165/180, EMM29.32 with pident 98.204 and length 167/180
-GCF_002268475.1_ASM226847v1_genomic.fna	12.0	-	-	EMM12.0	All exact allele matches

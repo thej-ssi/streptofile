@@ -27,10 +27,14 @@ def parse_args():
                         default=False)
     return parser.parse_args()
 
-def run_virulence_gene_blast(assembly_file: Path, virulence_gene_fasta_file: Path, output_file: Path) -> tuple(str) | None:
+def run_virulence_gene_blast(assembly_file: Path, 
+                             virulence_gene_fasta_file: Path, 
+                             output_file: Path,
+                             length_threshold: float = 60,
+                             pident_threshold: float = 80) -> bool | None:
     output_file = Path(output_file)
     if not output_file.exists():
-        cmd = f'blastn -query {virulence_gene_fasta_file} -subject {assembly_file} -qcov_hsp_perc 60 -perc_identity 80 -out {output_file} -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore"'
+        cmd = f'blastn -query {virulence_gene_fasta_file} -subject {assembly_file} -qcov_hsp_perc {length_threshold} -perc_identity {pident_threshold} -out {output_file} -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore"'
         result = subprocess.run(cmd, shell=True)
         if result.returncode != 0:
             return False
@@ -39,7 +43,12 @@ def run_virulence_gene_blast(assembly_file: Path, virulence_gene_fasta_file: Pat
     else:
         return True
 
-def load_virulence_gene_table(virulence_gene_tsv: Path) -> dict:
+
+def load_virulence_gene_table(virulence_gene_tsv: Path) -> pl.DataFrame:
+    """
+    Load virulence gene tsv into data frame.
+    Details are added onto long format output, and list of genes is used to make sure all genes are printed in the presence/absence matrix output
+    """
     try:
         virulence_gene_df = pl.read_csv(
             virulence_gene_tsv,
@@ -48,18 +57,17 @@ def load_virulence_gene_table(virulence_gene_tsv: Path) -> dict:
         )
     except pl.exceptions.NoDataError:
         raise Exception(f"Could not open virulence gene database tsv at {virulence_gene_tsv}")
-    #virulence_genes = {
-    #row["Gene"]: {k: v for k, v in row.items() if k != "Gene"}
-    #for row in virulence_gene_df.to_dicts()
-    #}
     return(virulence_gene_df)
 
 
 
 def extract_virulence_gene_presence(virulence_blast_tsv: Path,
-                                    length_threshold = 60, 
-                                    pident_threshold = 80) -> pl.DataFrame:
-    
+                                    length_threshold: float = 60, 
+                                    pident_threshold: float = 80
+                                    ) -> pl.DataFrame:
+    """"
+    Load virulence gene blast results and return a dataframe with best matching hit for each gene
+    """
     virulence_blast_tsv = Path(virulence_blast_tsv)
     if not virulence_blast_tsv.exists():
         virulence_blast_tsv["virulence_typing_notes"] = "No blast output found for virulence genes"
@@ -112,14 +120,25 @@ def extract_virulence_gene_presence(virulence_blast_tsv: Path,
 def profile_sample(assembly_file: Path,
                    output_folder: Path,
                    virulence_gene_fasta: Path,
+                   length_threshold: float = 60,
+                   pident_threshold: float = 80,
                    ) -> pl.DataFrame:
+    """
+    Wrapper for single sample
+    Runs blastn and returns dataframe of virulence 
+    """
     output_folder = Path(output_folder)
     output_folder.mkdir(parents=True, exist_ok= True)
     blast_output_tsv = output_folder.joinpath("virulence_blast.tsv")
-    blast_complete = run_virulence_gene_blast(assembly_file = assembly_file, virulence_gene_fasta_file=virulence_gene_fasta,
-                                              output_file=blast_output_tsv)
+    blast_complete = run_virulence_gene_blast(assembly_file = assembly_file,
+                                              virulence_gene_fasta_file=virulence_gene_fasta,
+                                              output_file=blast_output_tsv,
+                                              length_threshold=length_threshold,
+                                              pident_threshold=pident_threshold)
     if blast_complete:
-        virulence_results_df = extract_virulence_gene_presence(virulence_blast_tsv=blast_output_tsv)
+        virulence_results_df = extract_virulence_gene_presence(virulence_blast_tsv=blast_output_tsv,
+                                                               length_threshold=length_threshold,
+                                                               pident_threshold=pident_threshold)
         return virulence_results_df
     else:
         return None
@@ -137,7 +156,6 @@ def profile_batch(assembly_files: list[Path],
     sample_names = []
     for assembly_file in assembly_files:
         sample_output_dir = output_dir / assembly_file.stem
-        blast_tsv_path = sample_output_dir / "virulence_gene_blast.tsv"
         virulence_results_df = profile_sample(assembly_file=assembly_file,
                                                   output_folder=sample_output_dir,
                                                   virulence_gene_fasta = virulence_gene_fasta,
@@ -180,17 +198,10 @@ def profile_batch(assembly_files: list[Path],
     )
     return(combined_results, presence_absence_matrix)
 
-def print_results(combined_results: pl.DataFrame,
-                  presence_absence_matrix: pl.DataFrame,
-                  output_folder: Path) -> None:
-    emm_results_df = pl.from_dicts(virulence_results_dict)
-    emm_results_df.write_csv(file = output_file,
-                             separator = "\t")
-    return None
-
 
 def main():
     args = parse_args()
+    print(f"Running virulence profiler on {len(args.input)} samples")
     combined_results, presence_absence_matrix = profile_batch(
         assembly_files=args.input,
         database_dir=args.database,
@@ -198,8 +209,11 @@ def main():
     )
     output_file = args.output / "results.tsv"
     matrix_output_file = args.output / "results.matrix.tsv"
+    print(f"Printing results to {output_file}")
+    print(f"Printing binary presence/absence matrix to {matrix_output_file}")
     combined_results.write_csv(file = output_file, separator= "\t")
     presence_absence_matrix.write_csv(file = matrix_output_file, separator = "\t")
+    print(f"Done")
     
 
 if __name__ == "__main__":
