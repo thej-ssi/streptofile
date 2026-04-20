@@ -33,7 +33,18 @@ To run emm typing, MLST and virulence gene detection on a batch of assembly file
 streptofile -o <output_folder> *.fasta
 ```
 
-To run a subset of analyses, these can be specified in a comma-separated list using the --analyses parameter
+To run only a subset of analyses, these can be specified in a comma-separated list using the --analyses parameter
 ```
 streptofile -o <output_folder> --analyses emm,mlst,virulence *.fasta
 ```
+
+
+### Input
+
+Designed for genome assemblies, though all nucleotide fasta input will work, so cds files or similar is fine as well
+
+
+### Outputs
+- **<output_folder>/results.tsv**: All analysis results in a wide table format. Includes emm-typing results, mlst results and one column for each of the 66 virulence genes indicating presence or absence of that gene.
+- **<output_folder>/virulence_details.tsv**: All identified virulence genes in long table format. Includes information on coverage, identity, sequence reference and the identified sequence
+- **<output_fodler>/<sample_name>**: One folder for each input fasta with blast results etc.
