@@ -68,6 +68,8 @@ def type_batch(assembly_files: list[Path],
                                                                                          database_dir=virulence_database_dir,
                                                                                          output_dir=output_folder)
         result_dfs.append(virulence_presence_absence)
+        virulence_details_output = output_folder / "virulence_details.tsv"
+        virulence_results.write_csv(file = virulence_details_output, separator= "\t")
     dfs_fixed = [result_dfs[0]] + [df.drop("sample") for df in result_dfs[1:]]
     combined_results = pl.concat(dfs_fixed, how="horizontal")
     return(combined_results)
@@ -76,7 +78,7 @@ def main():
     args = parse_args()
     print(f"Running streptofile on {len(args.input)} samples")
     args.analyses = args.analyses.lower()
-    if args.analyses.lower == "all":
+    if args.analyses == "all":
         args.analyses = "emm,mlst,virulence"
     print(f"Including analyses: {args.analyses}")
     analyses_to_run = args.analyses.split(",")
