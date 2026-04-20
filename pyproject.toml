@@ -1,6 +1,6 @@
 [project]
 name = "streptofile"
-version = "0.3.3"
+version = "0.4.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
@@ -26,7 +26,10 @@ build-backend = "uv_build"
 
 
 [project.scripts]
-streptofile = "streptofile.streptofile:main"
+streptofile = "streptofile.run_streptofile:main"
+emm_typer = "streptofile.emm_typer:main"
+mlstyper = "streptofile.mlstyper:main"
+virulence_profiler = "streptofile.virulence_profiler:main"
 
 [tool.uv]
 package = true

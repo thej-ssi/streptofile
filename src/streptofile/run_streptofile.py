@@ -64,7 +64,6 @@ def type_batch(assembly_files: list[Path],
                                             database_dir=mlst_database_dir)
         result_dfs.append(mlst_results)
     if "virulence" in analyses_to_run:
-        print(assembly_files)
         virulence_results, virulence_presence_absence = virulence_profiler.profile_batch(assembly_files=assembly_files,
                                                                                          database_dir=virulence_database_dir,
                                                                                          output_dir=output_folder)
@@ -75,9 +74,11 @@ def type_batch(assembly_files: list[Path],
 
 def main():
     args = parse_args()
-    print(f"Running emm typer on {len(args.input)} samples")
-    if args.analyses.lower() == "all":
+    print(f"Running streptofile on {len(args.input)} samples")
+    args.analyses = args.analyses.lower()
+    if args.analyses.lower == "all":
         args.analyses = "emm,mlst,virulence"
+    print(f"Including analyses: {args.analyses}")
     analyses_to_run = args.analyses.split(",")
     results_df = type_batch(assembly_files=args.input,
                             output_folder=args.output,

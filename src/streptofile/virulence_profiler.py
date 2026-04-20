@@ -31,7 +31,8 @@ def run_virulence_gene_blast(assembly_file: Path,
                              virulence_gene_fasta_file: Path, 
                              output_file: Path,
                              length_threshold: float = 60,
-                             pident_threshold: float = 80) -> bool | None:
+                             pident_threshold: float = 80,
+                             ) -> bool | None:
     output_file = Path(output_file)
     if not output_file.exists():
         cmd = f'blastn -query {virulence_gene_fasta_file} -subject {assembly_file} -qcov_hsp_perc {length_threshold} -perc_identity {pident_threshold} -out {output_file} -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore"'
@@ -63,7 +64,7 @@ def load_virulence_gene_table(virulence_gene_tsv: Path) -> pl.DataFrame:
 
 def extract_virulence_gene_presence(virulence_blast_tsv: Path,
                                     length_threshold: float = 60, 
-                                    pident_threshold: float = 80
+                                    pident_threshold: float = 80,
                                     ) -> pl.DataFrame:
     """"
     Load virulence gene blast results and return a dataframe with best matching hit for each gene
@@ -114,7 +115,6 @@ def extract_virulence_gene_presence(virulence_blast_tsv: Path,
         pl.col("pident").round(2).alias("pident")
         )
         )
-    print(results_df)
     return(results_df)
 
 def profile_sample(assembly_file: Path,
@@ -149,7 +149,7 @@ def profile_batch(assembly_files: list[Path],
                   full_path: bool = False,
                   length_threshold = 60,
                   pident_threshold = 80,
-                  ) -> tuple[pl.DataFrame]:
+                  ) -> tuple[pl.DataFrame,pl.DataFrame]:
     virulence_results = []
     virulence_gene_fasta = database_dir / "virulence_gene_references.fasta"
     virulence_gene_tsv = database_dir / "virulence_genes.tsv"
@@ -159,6 +159,8 @@ def profile_batch(assembly_files: list[Path],
         virulence_results_df = profile_sample(assembly_file=assembly_file,
                                                   output_folder=sample_output_dir,
                                                   virulence_gene_fasta = virulence_gene_fasta,
+                                                  length_threshold=length_threshold,
+                                                  pident_threshold=pident_threshold,
                                                   )
         if full_path:
             sample_name = str(assembly_file)
