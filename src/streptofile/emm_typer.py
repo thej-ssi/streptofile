@@ -129,10 +129,17 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
         .group_by("extended_sstart")
         .first()
     )
-
+    
     if blast_df_unique.height == 0:
         notes.append("No blast hits found for EMM genes")
         return result_df(emm_typing_notes=", ".join(notes))
+    
+    first_row = blast_df_unique.row(0, named=True)
+    ascending = first_row["sstart"] < first_row["send"]
+    blast_df_unique = blast_df_unique.sort("sstart", descending=not ascending)
+
+    n = blast_df_unique.height
+
 
     genes_in_operon = ",".join(blast_df_unique.get_column("qseqid").to_list())
 
@@ -147,11 +154,6 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
             emm_typing_notes=", ".join(notes) if notes else "All exact allele matches",
         )
 
-    first_row = blast_df_unique.row(0, named=True)
-    ascending = first_row["sstart"] < first_row["send"]
-    blast_df_unique = blast_df_unique.sort("sstart", descending=not ascending)
-
-    n = blast_df_unique.height
 
     if n == 1:
         row = blast_df_unique.row(0, named=True)
