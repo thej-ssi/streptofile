@@ -105,8 +105,8 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
             [
                 (pl.col("length") / pl.col("qlen") * 100).alias("plen"),
                 pl.when(pl.col("sstart") < pl.col("send"))
-                .then(((pl.col("sstart") - pl.col("qstart") + 1) / 100).floor())
-                .otherwise(((pl.col("send") + pl.col("qend") - 180) / 100).floor())
+                .then(((pl.col("sstart") - pl.col("qstart") + 1) / 180).floor())
+                .otherwise(((pl.col("send") + pl.col("qend") - 180) / 180).floor())
                 .cast(pl.Int64)
                 .alias("extended_sstart"),
                 pl.col("qseqid").str.replace(r"^EMM", "").alias("allele"),
