@@ -40,15 +40,15 @@ def parse_args():
 
 def run_mlst_blast(
     assembly_file: Path,
-    mlst_allele_fasta_file: Path,
+    mlst_allele_db: Path,
     output_file: Path,
     ) -> bool | None:
     output_file = Path(output_file)
     if not output_file.exists():
         cmd = (
-            f'blastn -query {mlst_allele_fasta_file} -subject {assembly_file} '
-            f'-out {output_file} '
-            f'-outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore"'
+            f'blastn -query {assembly_file} -subject {mlst_allele_db} '
+            f'-out {output_file} -max_target_seqs 100000 -ungapped -perc_identity 80 '
+            f'-outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore slen"'
         )
         result = subprocess.run(cmd, shell=True)
         if result.returncode != 0:
@@ -62,7 +62,7 @@ def run_mlst_blast(
 def load_mlst_profiles(profiles_tsv: Path) -> pl.DataFrame:
     """
     Load MLST profiles TSV into a data frame.
-    The gene columns are inferred as all columns except ST.
+    The gene columns are inferred as all columns except ST and clonal_complex.
     """
     try:
         profiles_df = pl.read_csv(
@@ -89,11 +89,19 @@ def extract_mlst_type(
     """
     Load MLST BLAST results and return a one-row dataframe with ST,
     top hit for each allele, and notes.
+
+    Assumes BLAST was run with:
+      - assembly as query
+      - alleles.fasta as subject/database
+
+    Therefore:
+      - qseqid = assembly contig
+      - sseqid = MLST allele name, e.g. gki_4
     """
     mlst_blast_tsv = Path(mlst_blast_tsv)
 
     profiles_df = load_mlst_profiles(profiles_tsv)
-    mlst_genes = [col for col in profiles_df.columns if col != "ST" and col != "clonal_complex"]
+    mlst_genes = [col for col in profiles_df.columns if col not in ["ST", "clonal_complex"]]
 
     default_result = {
         "ST": ["ND"],
@@ -123,6 +131,7 @@ def extract_mlst_type(
                 "sseq",
                 "evalue",
                 "bitscore",
+                "slen",
             ],
             schema_overrides={
                 "qseqid": pl.Utf8,
@@ -137,6 +146,7 @@ def extract_mlst_type(
                 "sseq": pl.Utf8,
                 "evalue": pl.Float64,
                 "bitscore": pl.Float64,
+                "slen": pl.Int64,
             },
         )
     except pl.exceptions.NoDataError:
@@ -148,15 +158,20 @@ def extract_mlst_type(
 
     blast_df = blast_df.with_columns(
         [
-            pl.col("qseqid").str.extract(r"^(.+?)_([^_]+)$", group_index=1).alias("gene"),
-            pl.col("qseqid").str.extract(r"^(.+?)_([^_]+)$", group_index=2).alias("allele"),
-            (pl.col("length") / pl.col("qlen") * 100).alias("percent_coverage"),
+            pl.col("sseqid").str.extract(r"^(.+?)_([^_]+)$", group_index=1).alias("gene"),
+            pl.col("sseqid").str.extract(r"^(.+?)_([^_]+)$", group_index=2).alias("allele"),
+            (pl.col("length") / pl.col("slen") * 100).alias("percent_coverage"),
+            pl.min_horizontal("sstart", "send").alias("subject_start"),
+            pl.max_horizontal("sstart", "send").alias("subject_end"),
+        ]
+    ).with_columns(
+        [
             (
                 (pl.col("pident") == 100.0)
-                & (pl.col("length") == pl.col("qlen"))
-                & (pl.col("qstart") == 1)
-                & (pl.col("qend") == pl.col("qlen"))
-            ).alias("exact_match"),
+                & (pl.col("length") == pl.col("slen"))
+                & (pl.col("subject_start") == 1)
+                & (pl.col("subject_end") == pl.col("slen"))
+            ).alias("exact_match")
         ]
     ).filter(
         pl.col("gene").is_in(mlst_genes)
@@ -191,7 +206,7 @@ def extract_mlst_type(
                 "allele_call",
                 "pident",
                 "length",
-                "qlen",
+                "slen",
                 "exact_match",
             ]
         )
@@ -207,7 +222,7 @@ def extract_mlst_type(
         exact_alleles[gene] = row["allele"]
         if not row["exact_match"]:
             notes.append(
-                f"{gene} best hit is allele {row['allele']} with pident {row['pident']} and length {row['length']}/{row['qlen']}"
+                f"{gene} best hit is allele {row['allele']} with pident {row['pident']} and length {row['length']}/{row['slen']}"
             )
 
     missing_genes = [gene for gene in mlst_genes if allele_calls[gene] == "-"]
@@ -262,11 +277,10 @@ def extract_mlst_type(
     )
     return result_df
 
-
 def type_sample(
     assembly_file: Path,
     output_folder: Path,
-    mlst_allele_fasta: Path,
+    mlst_allele_db: Path,
     profiles_tsv: Path,
 ) -> pl.DataFrame:
     """
@@ -278,7 +292,7 @@ def type_sample(
     blast_output_tsv = output_folder.joinpath("mlst_blast.tsv")
     blast_complete = run_mlst_blast(
         assembly_file=assembly_file,
-        mlst_allele_fasta_file=mlst_allele_fasta,
+        mlst_allele_db=mlst_allele_db,
         output_file=blast_output_tsv,
     )
     if blast_complete:
@@ -306,7 +320,7 @@ def type_batch(
     full_path: bool = False,
 ) -> pl.DataFrame:
     mlst_results = []
-    mlst_allele_fasta = database_dir / "alleles.fasta"
+    mlst_allele_db = database_dir / "alleles.fasta"
     profiles_tsv = database_dir / "profiles.tsv"
 
     for assembly_file in assembly_files:
@@ -314,7 +328,7 @@ def type_batch(
         mlst_results_df = type_sample(
             assembly_file=assembly_file,
             output_folder=sample_output_dir,
-            mlst_allele_fasta=mlst_allele_fasta,
+            mlst_allele_db=mlst_allele_db,
             profiles_tsv=profiles_tsv,
         )
 

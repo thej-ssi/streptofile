@@ -29,7 +29,7 @@ def parse_args():
 
 
 
-def run_emm_blast(assembly_file: Path, emm_allele_fasta: Path, output_file: Path) -> tuple[str] | None:
+def run_emm_blast(assembly_file: Path, emm_allele_fasta: Path, output_file: Path) -> bool:
     output_file = Path(output_file)
     if not output_file.exists():
         cmd = f'blastn -query {emm_allele_fasta} -subject {assembly_file} -qcov_hsp_perc 90 -out {output_file} -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore"'
@@ -46,6 +46,7 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
     emm_types_in_emm_plus_mrp_operons = []  # to update
     mrp_types_in_emm_plus_mrp_operons = [
         "134",
+        "141",
         "156",
         "159",
         "164",
@@ -94,6 +95,20 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
                 "evalue",
                 "bitscore",
             ],
+            schema_overrides={
+                "qseqid": pl.Utf8,
+                "sseqid": pl.Utf8,
+                "pident": pl.Float64,
+                "length": pl.Int64,
+                "qlen": pl.Int64,
+                "qstart": pl.Int64,
+                "qend": pl.Int64,
+                "sstart": pl.Int64,
+                "send": pl.Int64,
+                "sseq": pl.Utf8,
+                "evalue": pl.Float64,
+                "bitscore": pl.Float64,
+            },
         )
     except pl.exceptions.NoDataError:
         return result_df(emm_typing_notes="Empty blast output, no EMM genes detected")
@@ -105,10 +120,12 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
             [
                 (pl.col("length") / pl.col("qlen") * 100).alias("plen"),
                 pl.when(pl.col("sstart") < pl.col("send"))
-                .then(((pl.col("sstart") - pl.col("qstart") + 1) / 180).floor())
-                .otherwise(((pl.col("send") + pl.col("qend") - 180) / 180).floor())
+                .then(((pl.col("sstart") - pl.col("qstart") + 1) / 200).round())
+                .otherwise(((pl.col("send") - pl.col("qstart") + pl.col("length") - pl.col("qlen") + 1) / 200).round())
                 .cast(pl.Int64)
-                .alias("extended_sstart"),
+                .alias("locus_bin"),
+                pl.min_horizontal("sstart", "send").alias("hit_start"),
+                pl.max_horizontal("sstart", "send").alias("hit_end"),
                 pl.col("qseqid").str.replace(r"^EMM", "").alias("allele"),
                 pl.when((pl.col("length") < pl.col("qlen")) | (pl.col("pident") < 100))
                 .then(pl.col("qseqid").str.replace(r"^EMM", "") + pl.lit("*"))
@@ -123,13 +140,44 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
         )
         .filter(pl.col("bitscore") > 280)
     )
-
-    blast_df_unique = (
-        blast_df.sort("bitscore", descending=True)
-        .group_by("extended_sstart")
+    best_per_gene_locus = (
+        blast_df
+        .sort(
+            by=["bitscore", "pident", "length"],
+            descending=[True, True, True],
+        )
+        .group_by(["sseqid", "locus_bin", "qseqid"])
         .first()
     )
-    
+
+    ### The following step exists because there can be blast hits for an emm gene within other emm genes. We need to filter those out.
+    blast_df_unique = (
+        best_per_gene_locus
+        .sort(["sseqid", "hit_start", "hit_end"])
+        .with_columns([
+            pl.col("hit_end").cum_max().shift(1).over("sseqid").alias("prev_max_end")
+        ])
+        .with_columns([
+            pl.when(
+                pl.col("prev_max_end").is_null() |
+                (pl.col("hit_start") > pl.col("prev_max_end"))
+            )
+            .then(1)
+            .otherwise(0)
+            .alias("new_overlap_group")
+        ])
+        .with_columns([
+            pl.col("new_overlap_group").cum_sum().over("sseqid").alias("overlap_group")
+        ])
+        .sort(
+            by=["sseqid", "overlap_group", "bitscore", "pident", "length"],
+            descending=[False, False, True, True, True],
+        )
+        .group_by(["sseqid", "overlap_group"])
+        .first()
+        .sort(["sseqid", "hit_start"])
+    )
+
     if blast_df_unique.height == 0:
         notes.append("No blast hits found for EMM genes")
         return result_df(emm_typing_notes=", ".join(notes))
@@ -141,12 +189,12 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
     n = blast_df_unique.height
 
 
-    genes_in_operon = ",".join(blast_df_unique.get_column("qseqid").to_list())
+    genes_in_operon = ",".join(blast_df_unique.get_column("allele").to_list())
 
     if blast_df_unique["sseqid"].n_unique() != 1:
         emm_genes = blast_df_unique.get_column("typed_allele").to_list()
         notes.append(
-            "Unable to determine EMM type because EMM and EMM-like genes found on multiple contigs. Alleles found: "
+            "Unable to determine EMM type because EMM and EMM-like genes are found on multiple contigs. Alleles found: "
             + "/".join(emm_genes)
         )
         return result_df(
@@ -161,7 +209,7 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
 
         if row["length"] < row["qlen"] or row["pident"] < 100:
             notes.append(
-                f"EMM{row['allele']} with {round(row['pident'], 2)} and length {row['length']}/{row['qlen']}"
+                f"EMM{row['allele']}__{row['length']}__{round(row['pident'], 2)}"
             )
 
         return result_df(
@@ -188,18 +236,16 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
                 f"ENN{row1['allele']} with pident {round(row1['pident'], 2)} and length {row1['length']}/{row1['qlen']}"
             )
 
-        emm_maintype = row0["main_type"]
-        mrp_maintype = row1["main_type"]
-
+        enn_maintype = row0["main_type"]
+        emm_maintype = row1["main_type"]
         if (
-            mrp_maintype in emm_types_in_emm_plus_mrp_operons
-            or emm_maintype in mrp_types_in_emm_plus_mrp_operons
+            emm_maintype in emm_types_in_emm_plus_mrp_operons 
+            or enn_maintype in mrp_types_in_emm_plus_mrp_operons
         ):
             mrp_type = emm_type
             emm_type = enn_type
             enn_type = "-"
             notes.append("EMM redesignated due to known MRP+EMM operon")
-
         return result_df(
             emm_type=emm_type,
             enn_type=enn_type,
@@ -219,17 +265,17 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
 
         if row0["length"] < row0["qlen"] or row0["pident"] < 100:
             notes.append(
-                f"MRP{row0['allele']} with pident {round(row0['pident'], 2)} and length {row0['length']}/{row0['qlen']}"
+                f"MRP{row0['allele']}__{row0['length']}__{round(row0['pident'], 2)}"
             )
 
         if row1["length"] < row1["qlen"] or row1["pident"] < 100:
             notes.append(
-                f"EMM{row1['allele']} with pident {round(row1['pident'], 2)} and length {row1['length']}/{row1['qlen']}"
+                f"EMM{row1['allele']}__{row1['length']}__{round(row1['pident'], 2)}"
             )
 
         if row2["length"] < row2["qlen"] or row2["pident"] < 100:
             notes.append(
-                f"ENN{row2['allele']} with pident {round(row2['pident'], 2)} and length {row2['length']}/{row2['qlen']}"
+                f"ENN{row2['allele']}__{row2['length']}__{round(row2['pident'], 2)}"
             )
 
         return result_df(
@@ -245,13 +291,11 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
         blast_df_unique.select(
             pl.concat_str(
                 [
-                    pl.col("qseqid"),
-                    pl.lit(" with pident "),
-                    pl.col("pident").round(2).cast(pl.Utf8),
-                    pl.lit(" and length "),
+                    pl.col("allele"),
+                    pl.lit("__"),
                     pl.col("length").cast(pl.Utf8),
-                    pl.lit("/"),
-                    pl.col("qlen").cast(pl.Utf8),
+                    pl.lit("__"),
+                    pl.col("pident").round(2).cast(pl.Utf8),
                 ],
                 separator="",
             ).alias("combined")

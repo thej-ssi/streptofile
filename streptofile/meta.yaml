@@ -1,5 +1,5 @@
 {% set name = "streptofile" %}
-{% set version = "0.4.1" %}
+{% set version = "0.4.5" %}
 
 package:
   name: {{ name|lower }}
@@ -7,7 +7,7 @@ package:
 
 source:
   url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/streptofile-{{ version }}.tar.gz
-  sha256: fcfd30aa1a9615c0e1e6abffbb3792010e721ab14be312b852b6db4fd900c0b2
+  sha256: 6e7fd519db9816039b416d3af667ae0eea563cb2ae0c1d8046374bc8bf4b6cba
 
 build:
   entry_points:
