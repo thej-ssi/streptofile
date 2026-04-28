@@ -47,7 +47,7 @@ def run_mlst_blast(
     if not output_file.exists():
         cmd = (
             f'blastn -query {assembly_file} -subject {mlst_allele_db} '
-            f'-out {output_file} -max_target_seqs 100000 -ungapped -perc_identity 80 '
+            f'-out {output_file} -max_target_seqs 100000 -ungapped -perc_identity 80 -word_size 50 '
             f'-outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore slen"'
         )
         result = subprocess.run(cmd, shell=True)

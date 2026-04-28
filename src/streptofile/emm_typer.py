@@ -32,7 +32,7 @@ def parse_args():
 def run_emm_blast(assembly_file: Path, emm_allele_fasta: Path, output_file: Path) -> bool:
     output_file = Path(output_file)
     if not output_file.exists():
-        cmd = f'blastn -query {emm_allele_fasta} -subject {assembly_file} -qcov_hsp_perc 90 -out {output_file} -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore"'
+        cmd = f'blastn -query {emm_allele_fasta} -subject {assembly_file} -qcov_hsp_perc 90 -out {output_file} -word_size 28 -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore"'
         result = subprocess.run(cmd, shell=True)
         if result.returncode != 0:
             return False
@@ -391,7 +391,6 @@ def main():
     print(f"Printing results to {output_file}")
     emm_results_df.write_csv(file = output_file,
                              separator = "\t")
-    print("Done")
 
 if __name__ == "__main__":
     main()

@@ -4,6 +4,7 @@ from pathlib import Path
 import polars as pl
 import subprocess
 import argparse
+import time
 from importlib import resources
 from streptofile import emm_typer
 from streptofile import mlstyper
@@ -75,6 +76,7 @@ def type_batch(assembly_files: list[Path],
     return(combined_results)
 
 def main():
+    start_time = time.perf_counter()
     args = parse_args()
     print(f"Running streptofile on {len(args.input)} samples")
     args.analyses = args.analyses.lower()
@@ -93,7 +95,11 @@ def main():
     print(f"Printing results to {output_file}")
     results_df.write_csv(file = output_file,
                          separator = "\t")
-    print("Done")
+    end_time = time.perf_counter()
+    time_elapsed = end_time - start_time
+    mins, secs = divmod(time_elapsed, 60)
+
+    print(f"Done in {int(mins)}m {secs:.2f}s")
 
 if __name__ == "__main__":
     main()

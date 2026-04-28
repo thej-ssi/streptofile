@@ -1,20 +1,22 @@
 {% set name = "streptofile" %}
-{% set version = "0.3.0" %}
-
+{% set version = "0.4.6" %}
 package:
   name: {{ name|lower }}
   version: {{ version }}
-
 source:
   url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/streptofile-{{ version }}.tar.gz
-  sha256: 7d879bfac49cdd2d5535cecf1fbd713e04f734eeaed407511301cfcc687747c7
-
+  sha256: 226501e5181bb308caf305dd2e8236d71d7f0e07cfb019fac83bae21dd62f1ae
 build:
   entry_points:
-    - streptofile = streptofile.streptofile:main
+    - streptofile = streptofile.run_streptofile:main
+    - emm_typer = streptofile.emm_typer:main
+    - mlstyper = streptofile.mlstyper:main
+    - virulence_profiler = streptofile.virulence_profiler:main
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   number: 0
+
+
 
 requirements:
   host:
@@ -33,11 +35,14 @@ test:
   commands:
     - pip check
     - streptofile --help
+    - emm_typer --help
+    - mlstyper --help
+    - virulence_profiler --help
   requires:
     - pip
 
 about:
-  summary: 'Analysis of Streptococcus pyogenes whole-genome sequencing data'
+  summary: EMM typing, MLST and Virulence gene detection for S. pyogenes whole-genome sequencing data
   license: MIT
 
 extra:
