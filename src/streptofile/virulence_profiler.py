@@ -93,9 +93,31 @@ def extract_virulence_gene_presence(virulence_blast_tsv: Path,
                 "evalue",
                 "bitscore",
             ],
+            schema_overrides={
+                "qseqid": pl.Utf8,
+                "sseqid": pl.Utf8,
+                "pident": pl.Float64,
+                "length": pl.Int64,
+                "qlen": pl.Int64,
+                "qstart": pl.Int64,
+                "qend": pl.Int64,
+                "sstart": pl.Int64,
+                "send": pl.Int64,
+                "sseq": pl.Utf8,
+                "evalue": pl.Float64,
+                "bitscore": pl.Float64,
+            },
         )
     except pl.exceptions.NoDataError:
-        raise Exception(f"Could not open virulence gene database tsv at {virulence_blast_tsv}")
+        return(pl.DataFrame(schema={
+            "qseqid": pl.Utf8,
+            "plen": pl.Float64,
+            "pident": pl.Float64,
+            "sseqid": pl.Utf8,
+            "sstart": pl.Int64,
+            "send": pl.Int64,
+            "sseq": pl.Utf8,
+}))
     
     blast_df = (
     blast_df

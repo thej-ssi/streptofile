@@ -111,7 +111,7 @@ def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
             },
         )
     except pl.exceptions.NoDataError:
-        return result_df(emm_typing_notes="Empty blast output, no EMM genes detected")
+        return result_df(emm_typing_notes="EMM blast output empty")
 
     notes = []
 

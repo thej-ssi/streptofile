@@ -89,6 +89,7 @@ def extract_mlst_type(
     """
     Load MLST BLAST results and return a one-row dataframe with ST,
     top hit for each allele, and notes.
+    Requires profiles.tsv as supplied by pubMLST
 
     Assumes BLAST was run with:
       - assembly as query
@@ -150,7 +151,8 @@ def extract_mlst_type(
             },
         )
     except pl.exceptions.NoDataError:
-        raise Exception(f"Could not open MLST blast output tsv at {mlst_blast_tsv}")
+        default_result["mlst_notes"] = ["MLST blast output empty"]
+        return pl.DataFrame(default_result)
 
     if blast_df.height == 0:
         default_result["mlst_notes"] = ["No blast hits found for MLST alleles"]
