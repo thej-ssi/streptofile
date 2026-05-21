@@ -9,6 +9,7 @@ from importlib import resources
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    default_db_path = resources.files("streptofile") / "db"
     parser.add_argument("input",
                         nargs="*",
                         help = "Input fasta file(s)",
@@ -20,7 +21,7 @@ def parse_args():
     parser.add_argument("-d", "--database",
                         help = "Path to folder with virulence gene data (fasta file and tsv)",
                         type=Path,
-                        default = resources.files("streptofile") / "db" / "virulence_profiling")
+                        default = default_db_path / "virulence_profiling")
     parser.add_argument("--full_path",
                         help = "Print full path to fasta input in output tsv rather than just file name",
                         action= "store_true",

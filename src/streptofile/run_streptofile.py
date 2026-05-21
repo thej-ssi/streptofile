@@ -13,6 +13,7 @@ from streptofile import virulence_profiler
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    default_db_path = resources.files("streptofile") / "db"
     parser.add_argument("input",
                         nargs="*",
                         help = "Input fasta file(s)",
@@ -26,17 +27,17 @@ def parse_args():
                         type=str,
                         default = "all")
     parser.add_argument("--emm_db",
-                        help = "Path to fasta file with emm allele sequences",
+                        help = f'EMM allele sequence path. Default {default_db_path / "emm_typing" / "alltrimmed.tfa"}',
                         type=Path,
-                        default = resources.files("streptofile") / "db" / "emm_typing" / "alltrimmed.tfa")
+                        default = default_db_path / "emm_typing" / "alltrimmed.tfa")
     parser.add_argument("--mlst_db",
-                        help="Path to folder with MLST data (alleles fasta file and profiles tsv)",
+                        help=f'MLST database folder. Default {default_db_path / "mlst"}',
                         type=Path,
-                        default=resources.files("streptofile") / "db" / "mlst")
+                        default=default_db_path / "mlst")
     parser.add_argument("--virulence_db",
-                        help = "Path to fasta file with emm allele sequences",
+                        help = f'Virulence gene database folder. Default {default_db_path / "virulence_profiling"}',
                         type=Path,
-                        default = resources.files("streptofile") / "db" / "virulence_profiling")
+                        default = default_db_path / "virulence_profiling")
     parser.add_argument("--full_path",
                         help = "Print full path to fasta input in output tsv rather than just file name",
                         action= "store_true",
@@ -54,24 +55,28 @@ def type_batch(assembly_files: list[Path],
                full_path: bool = False,
                ) -> pl.DataFrame:
     result_dfs = []
+    ### Extract results dataframe for each requested analysis
     if "emm" in analyses_to_run:
         emm_results = emm_typer.type_batch(assembly_files=assembly_files,
                                            emm_allele_fasta=emm_allele_fasta,
-                                           output_dir=output_folder)
+                                           output_dir=output_folder,
+                                           full_path=full_path)
         result_dfs.append(emm_results)
     if "mlst" in analyses_to_run:
         mlst_results = mlstyper.type_batch(assembly_files=assembly_files,
                                             output_dir=output_folder,
-                                            database_dir=mlst_database_dir)
+                                            database_dir=mlst_database_dir,
+                                            full_path=full_path)
         result_dfs.append(mlst_results)
     if "virulence" in analyses_to_run:
         virulence_results, virulence_presence_absence = virulence_profiler.profile_batch(assembly_files=assembly_files,
                                                                                          database_dir=virulence_database_dir,
-                                                                                         output_dir=output_folder)
+                                                                                         output_dir=output_folder,
+                                                                                         full_path=full_path)
         result_dfs.append(virulence_presence_absence)
         virulence_details_output = output_folder / "virulence_details.tsv"
         virulence_results.write_csv(file = virulence_details_output, separator= "\t")
-    dfs_fixed = [result_dfs[0]] + [df.drop("sample") for df in result_dfs[1:]]
+    dfs_fixed = [result_dfs[0]] + [df.drop("sample") for df in result_dfs[1:]] ### Remove sample column for all analyses except the first one
     combined_results = pl.concat(dfs_fixed, how="horizontal")
     return(combined_results)
 

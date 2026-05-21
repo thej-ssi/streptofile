@@ -1,11 +1,11 @@
 {% set name = "streptofile" %}
-{% set version = "0.4.7" %}
+{% set version = "0.4.8" %}
 package:
   name: {{ name|lower }}
   version: {{ version }}
 source:
   url: https://pypi.org/packages/source/{{ name[0] }}/{{ name }}/streptofile-{{ version }}.tar.gz
-  sha256: 935ac10b4c741cb3181fa0174bf6daf0a14f6025d7b6ddbf582ec8df6d0f6eb3
+  sha256: 5bcefbdfab5008b475d64f811bfbe875a49e24b7d6b62fd45703a4cc2277d376
 build:
   entry_points:
     - streptofile = streptofile.run_streptofile:main
@@ -15,7 +15,6 @@ build:
   noarch: python
   script: {{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
   number: 0
-
 
 
 requirements:

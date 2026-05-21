@@ -9,6 +9,7 @@ from importlib import resources
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    default_db_path = resources.files("streptofile") / "db"
     parser.add_argument(
         "input",
         nargs="*",
@@ -27,7 +28,7 @@ def parse_args():
         "--database",
         help="Path to folder with MLST data (alleles fasta file and profiles tsv)",
         type=Path,
-        default=resources.files("streptofile") / "db" / "mlst",
+        default=default_db_path / "mlst",
     )
     parser.add_argument(
         "--full_path",

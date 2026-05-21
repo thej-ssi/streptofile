@@ -9,6 +9,7 @@ from importlib import resources
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    default_db_path = resources.files("streptofile") / "db"
     parser.add_argument("input",
                         nargs="*",
                         help = "Input fasta file(s)",
@@ -20,7 +21,7 @@ def parse_args():
     parser.add_argument("-d", "--database",
                         help = "Path to fasta file with emm allele sequences",
                         type=Path,
-                        default = resources.files("streptofile") / "db" / "emm_typing" / "alltrimmed.tfa")
+                        default = default_db_path / "emm_typing" / "alltrimmed.tfa")
     parser.add_argument("--full_path",
                         help = "Print full path to fasta input in output tsv rather than just file name",
                         action= "store_true",
@@ -29,7 +30,10 @@ def parse_args():
 
 
 
-def run_emm_blast(assembly_file: Path, emm_allele_fasta: Path, output_file: Path) -> bool:
+def run_emm_blast(assembly_file: Path, 
+                  emm_allele_fasta: Path, 
+                  output_file: Path
+                  ) -> bool:
     output_file = Path(output_file)
     if not output_file.exists():
         cmd = f'blastn -query {emm_allele_fasta} -subject {assembly_file} -qcov_hsp_perc 90 -out {output_file} -word_size 28 -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore"'
@@ -42,7 +46,11 @@ def run_emm_blast(assembly_file: Path, emm_allele_fasta: Path, output_file: Path
         return True
 
 
-def extract_emm_type(emm_blast_tsv: Path) -> pl.DataFrame:
+def extract_emm_type(emm_blast_tsv: Path
+                     ) -> pl.DataFrame:
+    """
+    Extract EMM type based from blast EMM output generated with run_emm_blast()
+    """
     emm_types_in_emm_plus_mrp_operons = []  # to update
     mrp_types_in_emm_plus_mrp_operons = [
         "134",
@@ -320,7 +328,7 @@ def type_sample(
     output_folder = Path(output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
 
-    blast_output_tsv = output_folder.joinpath("emm_blast.tsv")
+    blast_output_tsv = output_folder / "emm_blast.tsv"
     blast_complete = run_emm_blast(
         assembly_file=assembly_file,
         emm_allele_fasta=emm_allele_fasta,
