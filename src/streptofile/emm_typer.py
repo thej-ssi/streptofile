@@ -10,7 +10,7 @@ from importlib import resources
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    default_db_path = resources.files("streptofile") / "db" / "emm_typing" / "alltrimmed.tfa"
+    default_db_path = resources.files("streptofile") / "db" / "emm_typing"
     parser.add_argument("input",
                         nargs="*",
                         help = "Input fasta file(s)",
@@ -22,7 +22,7 @@ def parse_args():
                         required = True,
                         )
     parser.add_argument("-d", "--database",
-                        help = "Path to fasta file with emm allele sequences",
+                        help = "Path to EMM database directory containing alltrimmed.tfa and emm_database.tsv",
                         type=Path,
                         default = default_db_path,
                         )
@@ -50,8 +50,24 @@ def run_emm_blast(assembly_file: Path,
     else:
         return True
 
+def load_emm_table(emm_database_tsv: Path) -> pl.DataFrame:
+    """
+    Load virulence gene tsv into data frame.
+    Details are added onto long format output, and list of genes is used to make sure all genes are printed in the presence/absence matrix output
+    """
+    try:
+        emm_database_df = pl.read_csv(
+            emm_database_tsv,
+            separator="\t",
+            has_header=True,
+        )
+    except pl.exceptions.NoDataError:
+        raise Exception(f"Could not open virulence gene database tsv at {emm_database_tsv}")
+    return(emm_database_df)
 
-def extract_emm_type(emm_blast_tsv: Path
+
+def extract_emm_type(emm_blast_tsv: Path,
+                     emm_database_df: pl.DataFrame,
                      ) -> pl.DataFrame:
     """
     Extract EMM type based from blast EMM output generated with run_emm_blast()
@@ -205,18 +221,59 @@ def extract_emm_type(emm_blast_tsv: Path
     genes_in_operon = ",".join(blast_df_unique.get_column("allele").to_list())
 
     if blast_df_unique["sseqid"].n_unique() != 1:
-        emm_genes = blast_df_unique.get_column("typed_allele").to_list()
-        notes.append(
-            "Unable to determine EMM type because EMM and EMM-like genes are found on multiple contigs. Alleles found: "
-            + "/".join(emm_genes)
+        print(blast_df_unique)
+        sorted_main_types = ",".join(
+            map(
+                str,
+                sorted(blast_df_unique.get_column("main_type").cast(pl.Int64).to_list())
+            )
         )
+        print(sorted_main_types)
+        emm_db_row = emm_database_df.filter(
+            pl.col("main_types_sorted") == sorted_main_types
+        )
+        print(emm_db_row)
+        match_freq = emm_db_row.get_column("Freq").item()
+        if emm_db_row.height == 0:
+            emm_genes = blast_df_unique.get_column("typed_allele").to_list()
+            notes.append(
+                "Unable to determine EMM type because EMM and EMM-like genes are found on multiple contigs and gene combination is not found in database. Alleles found: "
+                + "/".join(emm_genes)
+            )
+            return result_df(
+                genes_in_operon=genes_in_operon,
+                emm_typing_notes=", ".join(notes) if notes else "All exact allele matches",
+            )
+        else:
+            emm_main_type = emm_db_row.get_column("EMM_type").item().split('.')[0]
+            if emm_main_type == "-":
+                emm_type = "-"
+            else:
+                emm_type = blast_df_unique.filter(pl.col("main_type") == emm_main_type).get_column("typed_allele").item()
+                emm_main_type = emm_db_row.get_column("EMM_type").item().split('.')[0]
+
+            enn_main_type = emm_db_row.get_column("ENN_type").item().split('.')[0]
+            if enn_main_type == "-":
+                enn_type = "-"
+            else:
+                enn_type = blast_df_unique.filter(pl.col("main_type") == enn_main_type).get_column("typed_allele").item()
+                enn_main_type = emm_db_row.get_column("ENN_type").item().split('.')[0]
+
+            mrp_main_type = emm_db_row.get_column("MRP_type").item().split('.')[0]
+            if mrp_main_type == "-":
+                mrp_type = "-"
+            else:
+                mrp_type = blast_df_unique.filter(pl.col("main_type") == mrp_main_type).get_column("typed_allele").item()
         return result_df(
+            emm_type=emm_type,
+            enn_type=enn_type,
+            mrp_type=mrp_type,
             genes_in_operon=genes_in_operon,
-            emm_typing_notes=", ".join(notes) if notes else "All exact allele matches",
+            emm_typing_notes=f"EMM and EMM like genes found on mulitple contigs. EMM type inferred from {match_freq} match(es) in database",
         )
 
 
-    if n == 1:
+    elif n == 1:
         row = blast_df_unique.row(0, named=True)
         emm_type = row["typed_allele"]
 
@@ -231,7 +288,7 @@ def extract_emm_type(emm_blast_tsv: Path
             emm_typing_notes=", ".join(notes) if notes else "All exact allele matches",
         )
 
-    if n == 2:
+    elif n == 2:
         row0 = blast_df_unique.row(0, named=True)
         row1 = blast_df_unique.row(1, named=True)
 
@@ -241,12 +298,12 @@ def extract_emm_type(emm_blast_tsv: Path
 
         if row0["length"] < row0["qlen"] or row0["pident"] < 100:
             notes.append(
-                f"EMM{row0['allele']} with pident {round(row0['pident'], 2)} and length {row0['length']}/{row0['qlen']}"
+                f"EMM{row0['allele']}__{row0['length']}__{round(row0['pident'], 2)}"
             )
 
         if row1["length"] < row1["qlen"] or row1["pident"] < 100:
             notes.append(
-                f"ENN{row1['allele']} with pident {round(row1['pident'], 2)} and length {row1['length']}/{row1['qlen']}"
+                f"EMM{row1['allele']}__{row1['length']}__{round(row1['pident'], 2)}"
             )
 
         enn_maintype = row0["main_type"]
@@ -267,7 +324,7 @@ def extract_emm_type(emm_blast_tsv: Path
             emm_typing_notes=", ".join(notes) if notes else "All exact allele matches",
         )
 
-    if n == 3:
+    elif n == 3:
         row0 = blast_df_unique.row(0, named=True)
         row1 = blast_df_unique.row(1, named=True)
         row2 = blast_df_unique.row(2, named=True)
@@ -328,6 +385,7 @@ def type_sample(
         assembly_file: Path,
         output_folder: Path,
         emm_allele_fasta: Path,
+        emm_database_tsv: Path
         ) -> pl.DataFrame:
 
     output_folder = Path(output_folder)
@@ -341,7 +399,9 @@ def type_sample(
     )
 
     if blast_complete:
-        return extract_emm_type(emm_blast_tsv=blast_output_tsv)
+        emm_database_df = load_emm_table(emm_database_tsv=emm_database_tsv)
+        return extract_emm_type(emm_blast_tsv=blast_output_tsv,
+                                emm_database_df = emm_database_df)
 
     return pl.DataFrame(
         {
@@ -356,6 +416,7 @@ def type_sample(
 def type_batch(
     assembly_files: list[Path],
     emm_allele_fasta: Path,
+    emm_database_tsv: Path,
     output_dir: Path,
     full_path: bool = False,
 ) -> pl.DataFrame:
@@ -371,6 +432,7 @@ def type_batch(
                 assembly_file=assembly_file,
                 output_folder=sample_output_dir,
                 emm_allele_fasta=emm_allele_fasta,
+                emm_database_tsv=emm_database_tsv,
             )
             .with_columns(pl.lit(sample_name).alias("sample"))
             .select(["sample", "EMM_type", "ENN_type", "MRP_type", "genes_in_operon", "emm_typing_notes"])
@@ -395,9 +457,12 @@ def type_batch(
 
 def main():
     args = parse_args()
+    emm_allele_fasta = args.database / "alltrimmed.tfa"
+    emm_database_tsv = args.database / "emm_database.tsv"
     print(f"Running emm typer on {len(args.input)} samples")
     emm_results_df = type_batch(assembly_files=args.input,
-                                   emm_allele_fasta=args.database,
+                                   emm_allele_fasta=emm_allele_fasta,
+                                   emm_database_tsv=emm_database_tsv,
                                    output_dir=args.output,
                                    full_path=args.full_path)
     output_file = args.output / "results.tsv"
