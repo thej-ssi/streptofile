@@ -5,39 +5,53 @@ from pathlib import Path
 
 test_output_dir = resources.files("streptofile") / "test_output"
 mlst_profiles_tsv = resources.files("streptofile") / "db" / "mlst" / "profiles.tsv"
+emm_database_tsv = resources.files("streptofile") / "db" / "emm_typing" / "emm_database.tsv"
 
+emm_database_df = emm_typer.load_emm_table(emm_database_tsv=emm_database_tsv)
 
 #### Tests for proper parsing of EMM blast output
 
 def test_emm_1() -> None:
-    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCF_000011765.3_ASM1176v2_genomic" / "emm_blast.tsv")
+    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCF_000011765.3_ASM1176v2_genomic" / "emm_blast.tsv",
+                                             emm_database_df=emm_database_df)
     print(emm_results.row(0))
     assert(emm_results.row(0) == ('1.0', '-', '-', '1.0', 'All exact allele matches'))
 
 def test_emm_2() -> None:
-    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCA_034705955.1_PDT001983156.1_genomic" / "emm_blast.tsv")
+    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCA_034705955.1_PDT001983156.1_genomic" / "emm_blast.tsv",
+                                             emm_database_df=emm_database_df)
     assert(emm_results.row(0) == ('11.0', '202.1', '141.2', '141.2,11.0,202.1', 'All exact allele matches'))
 
 
 def test_emm_3() -> None:
-    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCA_037112455.1_PDT002108051.1_genomic" / "emm_blast.tsv")
+    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCA_037112455.1_PDT002108051.1_genomic" / "emm_blast.tsv",
+                                             emm_database_df=emm_database_df)
     print(emm_results.row(0))
     assert(emm_results.row(0) == ('81.0', '164.3', '156.4*', '156.4,81.0,164.3', 'MRP156.4__180__99.44'))
 
 def test_emm_4() -> None:
-    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCF_001535505.1_ASM153550v1_genomic" / "emm_blast.tsv")
+    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCF_001535505.1_ASM153550v1_genomic" / "emm_blast.tsv",
+                                             emm_database_df=emm_database_df)
     print(emm_results.row(0))
     assert(emm_results.row(0) == ('4.0', '-', '156.0', '156.0,4.0', 'EMM redesignated due to known MRP+EMM operon'))
 
 def test_emm_5() -> None:
-    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCF_002236855.1_ASM223685v1_genomic" / "emm_blast.tsv")
+    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCF_002236855.1_ASM223685v1_genomic" / "emm_blast.tsv",
+                                             emm_database_df=emm_database_df)
     print(emm_results.row(0))
     assert(emm_results.row(0) == ('-', '-', '-', '156.4,111.2,111.2,29.32', 'More than three EMM genes found, 156.4__177__98.87, 111.2__180__99.44, 111.2__165__99.39, 29.32__167__98.2'))
 
 def test_emm_6() -> None:
-    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCA_003240915.2_ASM324091v2_genomic" / "emm_blast.tsv")
+    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCA_003240915.2_ASM324091v2_genomic" / "emm_blast.tsv",
+                                             emm_database_df=emm_database_df)
     print(emm_results.row(0))
     assert(emm_results.row(0) == ('-', '-', '-', '-', 'EMM blast output empty'))
+
+def test_emm_7() -> None:
+    emm_results = emm_typer.extract_emm_type(test_output_dir / "GCF_009906805.1_ASM990680v1_genomic" / "emm_blast.tsv",
+                                             emm_database_df=emm_database_df)
+    print(emm_results.row(0))
+    assert(emm_results.row(0) == ('94.0', '240.3*', '141.4*', '240.3,141.4,94.0', 'EMM and EMM like genes found on mulitple contigs. EMM type inferred from 161 match(es) in database'))
 
 
 #### Tests for proper parsing of MLST blast output
@@ -86,6 +100,7 @@ test_emm_3()
 test_emm_4()
 test_emm_5()
 test_emm_6()
+test_emm_7()
 test_mlst_1()
 test_mlst_2()
 test_mlst_3()

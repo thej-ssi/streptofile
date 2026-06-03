@@ -13,7 +13,7 @@ from streptofile import virulence_profiler
 def parse_args():
     parser = argparse.ArgumentParser()
     default_db_path = resources.files("streptofile") / "db"
-    default_emm_db = default_db_path / "emm_typing" / "alltrimmed.tfa"
+    default_emm_db = default_db_path / "emm_typing"
     default_mlst_db = default_db_path / "mlst"
     default_virulence_db = default_db_path / "virulence_profiling"
     parser.add_argument("input",
@@ -29,7 +29,7 @@ def parse_args():
                         type=str,
                         default = "all")
     parser.add_argument("--emm_db",
-                        help = f'EMM allele sequence path. Default {default_emm_db}',
+                        help = f'Path to EMM database folder containing alltrimmed.tfa and emm_database.tsv {default_emm_db}',
                         type=Path,
                         default = default_emm_db)
     parser.add_argument("--mlst_db",
@@ -52,6 +52,7 @@ def type_batch(assembly_files: list[Path],
                output_folder: Path,
                analyses_to_run: list,
                emm_allele_fasta: Path | None,
+               emm_database_tsv: Path | None,
                mlst_database_dir: Path | None,
                virulence_database_dir: Path | None,
                full_path: bool = False,
@@ -61,6 +62,7 @@ def type_batch(assembly_files: list[Path],
     if "emm" in analyses_to_run:
         emm_results = emm_typer.type_batch(assembly_files=assembly_files,
                                            emm_allele_fasta=emm_allele_fasta,
+                                           emm_database_tsv=emm_database_tsv,
                                            output_dir=output_folder,
                                            full_path=full_path)
         result_dfs.append(emm_results)
@@ -91,10 +93,13 @@ def main():
         args.analyses = "emm,mlst,virulence"
     print(f"Including analyses: {args.analyses}")
     analyses_to_run = args.analyses.split(",")
+    emm_allele_fasta = args.emm_db / "alltrimmed.tfa"
+    emm_database_tsv = args.emm_db / "emm_database.tsv"
     results_df = type_batch(assembly_files=args.input,
                             output_folder=args.output,
                             analyses_to_run=analyses_to_run,
-                            emm_allele_fasta=args.emm_db,
+                            emm_allele_fasta=emm_allele_fasta,
+                            emm_database_tsv=emm_database_tsv,
                             mlst_database_dir=args.mlst_db,
                             virulence_database_dir=args.virulence_db,
                             full_path=args.full_path)
