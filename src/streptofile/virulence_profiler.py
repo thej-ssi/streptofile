@@ -9,23 +9,27 @@ from importlib import resources
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    default_db_path = resources.files("streptofile") / "db"
+    default_db_path = resources.files("streptofile") / "db" / "virulence_profiling"
     parser.add_argument("input",
                         nargs="*",
                         help = "Input fasta file(s)",
-                        type = Path)
+                        type = Path,
+                        )
     parser.add_argument("-o", "--output",
                         help = "Output directory.",
                         type=Path,
-                        required = True)
+                        required = True,
+                        )
     parser.add_argument("-d", "--database",
                         help = "Path to folder with virulence gene data (fasta file and tsv)",
                         type=Path,
-                        default = default_db_path / "virulence_profiling")
+                        default = default_db_path,
+                        )
     parser.add_argument("--full_path",
                         help = "Print full path to fasta input in output tsv rather than just file name",
                         action= "store_true",
-                        default=False)
+                        default=False,
+                        )
     return parser.parse_args()
 
 def run_virulence_gene_blast(assembly_file: Path, 
@@ -33,7 +37,7 @@ def run_virulence_gene_blast(assembly_file: Path,
                              output_file: Path,
                              length_threshold: float = 60,
                              pident_threshold: float = 80,
-                             ) -> bool | None:
+                             ) -> bool:
     output_file = Path(output_file)
     if not output_file.exists():
         cmd = f'blastn -query {virulence_gene_fasta_file} -subject {assembly_file} -qcov_hsp_perc {length_threshold} -perc_identity {pident_threshold} -out {output_file} -outfmt "6 qseqid sseqid pident length qlen qstart qend sstart send sseq evalue bitscore"'

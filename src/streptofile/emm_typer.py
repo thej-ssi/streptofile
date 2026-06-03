@@ -7,25 +7,30 @@ import argparse
 from importlib import resources
 
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
-    default_db_path = resources.files("streptofile") / "db"
+    default_db_path = resources.files("streptofile") / "db" / "emm_typing" / "alltrimmed.tfa"
     parser.add_argument("input",
                         nargs="*",
                         help = "Input fasta file(s)",
-                        type = Path)
+                        type = Path,
+                        )
     parser.add_argument("-o", "--output",
                         help = "Output directory.",
                         type=Path,
-                        required = True)
+                        required = True,
+                        )
     parser.add_argument("-d", "--database",
                         help = "Path to fasta file with emm allele sequences",
                         type=Path,
-                        default = default_db_path / "emm_typing" / "alltrimmed.tfa")
+                        default = default_db_path,
+                        )
     parser.add_argument("--full_path",
                         help = "Print full path to fasta input in output tsv rather than just file name",
                         action= "store_true",
-                        default=False)
+                        default=False,
+                        )
     return parser.parse_args()
 
 

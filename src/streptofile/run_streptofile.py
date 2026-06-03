@@ -2,7 +2,6 @@
 
 from pathlib import Path
 import polars as pl
-import subprocess
 import argparse
 import time
 from importlib import resources
@@ -14,6 +13,9 @@ from streptofile import virulence_profiler
 def parse_args():
     parser = argparse.ArgumentParser()
     default_db_path = resources.files("streptofile") / "db"
+    default_emm_db = default_db_path / "emm_typing" / "alltrimmed.tfa"
+    default_mlst_db = default_db_path / "mlst"
+    default_virulence_db = default_db_path / "virulence_profiling"
     parser.add_argument("input",
                         nargs="*",
                         help = "Input fasta file(s)",
@@ -23,23 +25,23 @@ def parse_args():
                         type=Path,
                         required = True)
     parser.add_argument("--analyses",
-                        help = "Analyses to be performed in tab separated string. F.ex 'mlst,emm,virulence'. Default 'all.",
+                        help = "Analyses to be performed in tab separated string. F.ex 'mlst,emm,virulence'. Default 'all'.",
                         type=str,
                         default = "all")
     parser.add_argument("--emm_db",
-                        help = f'EMM allele sequence path. Default {default_db_path / "emm_typing" / "alltrimmed.tfa"}',
+                        help = f'EMM allele sequence path. Default {default_emm_db}',
                         type=Path,
-                        default = default_db_path / "emm_typing" / "alltrimmed.tfa")
+                        default = default_emm_db)
     parser.add_argument("--mlst_db",
-                        help=f'MLST database folder. Default {default_db_path / "mlst"}',
+                        help=f'MLST database folder. Default {default_mlst_db}',
                         type=Path,
-                        default=default_db_path / "mlst")
+                        default=default_mlst_db)
     parser.add_argument("--virulence_db",
-                        help = f'Virulence gene database folder. Default {default_db_path / "virulence_profiling"}',
+                        help = f'Virulence gene database folder. Default {default_virulence_db}',
                         type=Path,
-                        default = default_db_path / "virulence_profiling")
+                        default = default_virulence_db)
     parser.add_argument("--full_path",
-                        help = "Print full path to fasta input in output tsv rather than just file name",
+                        help = "Print full path to fasta input in output tsv rather than just sample name",
                         action= "store_true",
                         default=False)
     return parser.parse_args()
@@ -76,7 +78,7 @@ def type_batch(assembly_files: list[Path],
         result_dfs.append(virulence_presence_absence)
         virulence_details_output = output_folder / "virulence_details.tsv"
         virulence_results.write_csv(file = virulence_details_output, separator= "\t")
-    dfs_fixed = [result_dfs[0]] + [df.drop("sample") for df in result_dfs[1:]] ### Remove sample column for all analyses except the first one
+    dfs_fixed = [result_dfs[0]] + [df.drop("sample") for df in result_dfs[1:]] ### Remove sample column for all analyses except the first one so it only appears once
     combined_results = pl.concat(dfs_fixed, how="horizontal")
     return(combined_results)
 
